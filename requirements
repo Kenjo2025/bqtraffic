@@ -2,4 +2,4 @@ pandas
 numpy
 altair
 streamlit
-plotly.express
+plotly
