@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import altair as alt
 import streamlit as st
-import plotly.express as px
+#import plotly.express as px
 
 files = st.file_uploader('Upload Files', accept_multiple_files = True, type='csv', help = 'When data is not uploaded, we use test_data to  demonstrate how / what graph appear.')
 
