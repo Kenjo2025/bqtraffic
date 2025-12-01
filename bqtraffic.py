@@ -56,18 +56,64 @@ df = df.set_index('Job ID')
 ################################################################################################################################################################
 #EXTEND TABLE
 map1 = pd.DataFrame({
-    'key': ['ads_', 'stores_', 'looker_', 'TT', 'SHP', 'Organic TT', 'Organic SHP', 'sku712', 'mhs', 'tt performance', 'shp performance', 'Orders'],
-    'destination': ['Ads Performance', 'SHP X TT (EMC, SS, PKR) 2.0', 'Livestream Analytic Report', 'Ads Schedule', 'Ads Schedule', 'Ads Schedule', 'Ads Schedule', 'Live Schedule', 'Live Schedule', 'Live Schedule', 'Live Schedule', 'SHP X TT (EMC, SS, PKR) 2.0']})
+    'key' : 
+    ['Ads.', 
+     'orders','organicshp1','organictt',
+     'Ads_table.shp', 'Ads_table.tt',
+     'ads_',
+     'stores_',
+     'Looker.',
+     'allsku', 'shpperf', 'skushp', 'ttperf', 'sum_sale',
+     'looker_',
+     'Streamlit.',
+     'Streamlit_table'],
+    'destination' : 
+    ['Ads Schedule',
+     'Ads Schedule Tn+1', 'Ads Schedule Tn+1', 'Ads Schedule Tn+1',
+     'Ads Schedule Tn+1', 'Ads Schedule Tn+1',
+     'Ads Performance 2.0',
+     'EMC X PKR (TT & SHP) 2.0',
+     'Live Schdeule',
+     'Live Schedule Tn+1', 'Live Schedule Tn+1', 'Live Schedule Tn+1', 'Live Schedule Tn+1', 'Live Schedule Tn+1',
+     'Livestream Analytics',
+     'Streamlit Schedule',
+     'SM Report'
+      ]})
+
 
 def map_dashboard(ref):
     for key, dash in zip(map1['key'], map1['destination']):
         if key in ref:
             return dash
     return 'Undetected'
+
+
 ################################################################################################################################################################
 # GRAPH TO SEE THE WHOLE STORY ETC
 df = df.reset_index() #key before jumping to graph
-    
+
+show = df
+show['Destination'] = df['Reference'].apply(map_dashboard)
+show = show.reset_index()
+
+#options = st.multiselect('Select Destination', show['Destination'].unique().tolist(), 
+                         #default=show['Destination'].unique().tolist())
+#show = show[show['Destination'].isin(options)]
+
+options = st.selectbox('Select Destination', show['Destination'].unique().tolist(),
+                         help = 'twin, please select twin')
+show = show[show['Destination'] == options]
+
+show = show.groupby(['Reference','Destination']).agg(**{
+    'GB Processed':('GB Processed','sum'), 'Duration': ('Duration', 'mean'), 'Count':('Job ID', 'count')}) 
+show
+
+gb = show['GB Processed'].sum()
+duration = show['Duration'].sum()
+count = show['Count'].sum()
+#selected = ', '.join(options)
+st.write(f'***{options}***: Usage is **{gb * 1000:,.2f} MB** ({gb:,.2f} GB), and Duration is **{(duration / count) :,.2f} ms**, and **{count :,.0f}** jobs inserted')
+
 ################################################################################################################################################################
 epsilon = df.groupby(['Date','Time', 'Head', 'User', 'Reference', 'Day']).agg(**{
     'GB Processed':('GB Processed','sum'),
@@ -87,7 +133,7 @@ with tabs[i]:
         total1 = epsilon['GB Processed'].sum()
         st.header('**Processed GB**', divider= 'grey')
         st.subheader(f'{total1 :,.2f} GB')
-        st.caption(f'{(total1 / 1000) * 100 :,.2f} % of capacity limit per month (1 TB per month).')
+        st.caption(f'{(total1 / 256) * 100 :,.2f} % of capacity limit per month (1 TB per month).')
     with count : 
         total2 = epsilon['Count'].sum()
         st.header('**Unique Jobs**', divider= 'grey')
@@ -209,7 +255,7 @@ pts = alt.selection_point(encodings=['x'])
 
 rect = alt.Chart(gamma).mark_rect().encode(
     alt.X('GB Processed:Q').bin(), alt.Y('Duration:Q').bin(),
-    alt.Color('count()').scale(scheme='greenblue').title('Graph'))
+    alt.Color('count()').scale(scheme='greenblue').title('Count'))
 
 circ = rect.mark_point().encode(alt.ColorValue('grey'), alt.Size('count()').title('Count')).transform_filter(pts)
 
@@ -225,7 +271,6 @@ with tabs[i]:
 cols = epsilon.columns.tolist()
 asindex = ['Date', 'Day', 'User', 'Reference', 'Time', 'Head', 'Create Time', 'Destination']
 numeric_cols = [c for c in cols if c not in asindex]
-
 
 with tabs[i]:
     with tab2:
@@ -309,12 +354,12 @@ bar = alt.Chart(omega).mark_bar().encode(
         tooltip=[control_var, control_var2, selected_bar, selected_line])
 
 line = (
-    alt.Chart(omega).mark_circle(size=30).encode(
+    alt.Chart(omega).mark_line(size=2, point=True, interpolate = 'monotone').encode(
         x=alt.X(control_var +':N', sort=['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], title=control_var, axis=alt.Axis(labelAngle=0)),
         y=alt.Y(f'Average {selected_line}' + ':Q', title=selected_line, axis=alt.Axis(titleColor="white")), 
         color=alt.value("red")))
 
-chart = (alt.layer(bar, line).resolve_scale(y="independent").properties(width=700, height=400, title=alt.Title(f"{selected_bar} (Bar) and {selected_line} (Circle) per Day", anchor = 'middle')))
+chart = (alt.layer(bar, line).resolve_scale(y="independent").properties(width=700, height=400, title=alt.Title(f"{selected_bar} (Bar) and {selected_line} (Line) per Day", anchor = 'middle')))
 with tabs[i]:
     with tab2:
         st.altair_chart(chart)
