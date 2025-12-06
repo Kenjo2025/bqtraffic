@@ -20,21 +20,32 @@ data ={
 'Day':['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday']} 
 
 test_data = pd.DataFrame(data)
-
-if files:
-    tabs = st.tabs([f"File {i+1}" for i in range(len(files))])
-    for i, files in enumerate(files):
-        with tabs[i]:
-            df = pd.read_csv(files)
+#THIS BLOCK PURPOSE TO EXPAND TABS ACCRODDING TO DATA INSTERTED------------------------
+#if files:
+    #tabs = st.tabs([f"File {i+1}" for i in range(len(files))])
+    #for i, files in enumerate(files):
+        #with tabs[i]:
+            #df = pd.read_csv(files)
             
-else:
-    st.write('Test Data Visualization')
-    tabs = st.tabs(['Test Data'])
-    with tabs[0]:
-        df = test_data
-i = 0
+#else:
+    #st.write('Test Data Visualization')
+    #tabs = st.tabs(['Test Data'])
+    #with tabs[0]:
+        #df = test_data
+#i = 0
 #df = pd.read_csv('jobs.csv')
 #only in case table columns name not right
+#--------------------------------------------------------------------------------------
+if files:
+    file = [f.name for f in files]
+    selected = st.radio('Select Files', file)
+    for f in files:
+        if f.name == selected:
+            df = pd.read_csv(f)
+else:
+    st.write('Test Data Visualization')
+    df = test_data
+
 
 df = df.rename(columns = {'job_id':'Job ID', 'create_time':'Create Time', 'end_time':'End Time', 'duration':'Duration', 'gb_processed':'GB Processed', 'job_type':'Job Type', 'user_email':'User', 'referenced_tables': 'Referenced'})
 
@@ -100,6 +111,7 @@ show = show.reset_index()
                          #default=show['Destination'].unique().tolist())
 #show = show[show['Destination'].isin(options)]
 
+st.subheader('Destination Summary')
 options = st.selectbox('Select Destination', show['Destination'].unique().tolist(),
                          help = 'twin, please select twin')
 show = show[show['Destination'] == options]
@@ -126,32 +138,33 @@ epsilon['Destination'] = epsilon['Reference'].apply(map_dashboard)
 
 epsilon = epsilon.set_index(['Date','Time', 'Head', 'User', 'Reference', 'Day', 'Destination'] )
 
-with tabs[i]:
-    epsilon
-    byte , count , duration , avg_byte  = st.columns(4)
-    with byte:
+#with tabs[i]: - if use tabs expander
+st.subheader('Overall Summary')
+epsilon
+byte , count , duration , avg_byte  = st.columns(4)
+with byte:
         total1 = epsilon['GB Processed'].sum()
         st.header('**Processed GB**', divider= 'grey')
         st.subheader(f'{total1 :,.2f} GB')
         st.caption(f'{(total1 / 256) * 100 :,.2f} % of capacity limit per month (1 TB per month).')
-    with count : 
+with count : 
         total2 = epsilon['Count'].sum()
         st.header('**Unique Jobs**', divider= 'grey')
         st.subheader(f'{total2 :,.0f} Jobs')
         st.caption(f'{total2 :,.0f} Jobs from all sources (BigQuery, Looker).')
-    with duration :
+with duration :
         total3 = epsilon['Duration'].mean()
         st.header('**Average Duration**', divider= 'grey')
         st.subheader(f'{total3  :,.2f} ms')
         st.caption(f'{(total3 /  1000) :,.2f} seconds per unique jobs from all sources.')
-    with avg_byte : 
+with avg_byte : 
         total4 = epsilon['GB Processed'].mean()
         st.header('**Average GB**', divider= 'grey')
         st.subheader(f'{total4 :,.4f} GB')
         st.caption(f'Each job inserted cost estimately {total4*1000 :,.2f} MB')
 
-with tabs[i]:
-    st.divider(width='stretch')
+#with tabs[i]:
+st.divider(width='stretch')
 
 epsilon = epsilon.reset_index()
 epsilon['Create Time'] = epsilon['Date'].astype('string') + ' ' + epsilon['Time']
@@ -171,8 +184,8 @@ line = (
 
 chart = (alt.layer(bar, line).resolve_scale(y="independent").properties(width=700, height=400, title=alt.Title("GB Processed & Duration Overtime", anchor = 'middle', fontSize=20)))
 
-with tabs[i]:
-    st.altair_chart(chart)
+#with tabs[i]:
+st.altair_chart(chart)
 
 ################################################################################################################################################################
 #define tabs / text / function / def
@@ -212,8 +225,8 @@ c1 = base.mark_arc(innerRadius=0, stroke=None)
 
 c2 = base.mark_text(radiusOffset=20).encode(text=alt.Text('GB Processed:Q', format = ',.2f'))
 
-with tabs[i]:
-    with tab1:
+#with tabs[i]:
+with tab1:
         st.altair_chart(c1 + c2)
 
 ################################################################################################################################################################
@@ -241,8 +254,9 @@ bars = alt.Chart(kappal).mark_bar().encode(
 ).transform_filter(brush).add_params(click).properties(width=550)
 
 heat = alt.vconcat(points, bars).properties(title=alt.Title('Traffic per Time', anchor = 'middle'))
-with tabs[i]:
-    with tab1:
+
+#with tabs[i]:
+with tab1:
         st.altair_chart(heat, use_container_width=True)
 ###############################################################################################################################################################
 #scatter as box and plus whatever
@@ -263,8 +277,8 @@ bar = alt.Chart(gamma, width=550, height=200).mark_bar().encode(
     x=alt.X('User Info:N', axis = alt.Axis(labelAngle = 0)), y='count()', color=alt.when(pts).then(alt.ColorValue("steelblue")).otherwise(alt.ColorValue("grey"))).add_params(pts)
 
 scatcrle = alt.vconcat(rect + circ, bar).resolve_legend(color="independent",size="independent")
-with tabs[i]:
-    with tab1:
+#with tabs[i]:
+with tab1:
         st.altair_chart(scatcrle)
 ################################################################################################################################################################
 #TAB 2 START HERE
@@ -272,12 +286,12 @@ cols = epsilon.columns.tolist()
 asindex = ['Date', 'Day', 'User', 'Reference', 'Time', 'Head', 'Create Time', 'Destination']
 numeric_cols = [c for c in cols if c not in asindex]
 
-with tabs[i]:
-    with tab2:
+#with tabs[i]:
+with tab2:
         col1, col2 = st.columns(2)
-    with col1 :
+with col1 :
         control_var = st.selectbox('Control Variable', asindex)
-    with col2 :
+with col2 :
         selected_bar = st.selectbox('Sum Variable', numeric_cols)
         selected_line = st.selectbox('Average Variable', numeric_cols)
 
@@ -286,8 +300,8 @@ omega = epsilon.groupby(control_var).agg({selected_bar : 'sum' ,
                                            'Count' : 'sum'})
 
 omega[f'Average {selected_line}'] = omega[selected_line] / omega['Count']
-with tabs[i]:
-    with tab2:
+#with tabs[i]:
+with tab2:
         omega
 omega = omega.reset_index()
 omega[control_var] = omega[control_var].astype(str)
@@ -309,8 +323,8 @@ line = (
         color=alt.value("red")))
 
 chart = (alt.layer(bar, line).resolve_scale(y="independent").properties(width=700, height=400, title=f"{selected_bar} (Bar) and {selected_line} (Line) per Day"))
-with tabs[i]:
-    with tab2:
+#with tabs[i]:
+with tab2:
         st.altair_chart(chart)
 
 ################################################################################################################################################################
@@ -327,14 +341,14 @@ cols = epsilon.columns.tolist()
 asindex = ['Date', 'Day', 'User', 'Reference', 'Head', 'Create Time', 'Destination'] 
 numeric_cols = [c for c in cols if c not in asindex]
 
-with tabs[i]:
-    with tab2:
+#with tabs[i]:
+with tab2:
         col1, col2 = st.columns(2)
-    with col1 :
+with col1 :
         control_var = st.selectbox('Control Variable-1', asindex)
         asindex_false = [a for a in asindex if a != control_var]
         control_var2 = st.selectbox('Control Variable2-1', asindex_false)
-    with col2 :
+with col2 :
         selected_bar = st.selectbox('Sum Variable-1', numeric_cols)
         selected_line = st.selectbox('Average Variable-1', numeric_cols)
 
@@ -360,6 +374,6 @@ line = (
         color=alt.value("red")))
 
 chart = (alt.layer(bar, line).resolve_scale(y="independent").properties(width=700, height=400, title=alt.Title(f"{selected_bar} (Bar) and {selected_line} (Line) per Day", anchor = 'middle')))
-with tabs[i]:
-    with tab2:
+#with tabs[i]:
+with tab2:
         st.altair_chart(chart)
