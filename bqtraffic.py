@@ -104,6 +104,7 @@ def map_dashboard(ref):
 df = df.reset_index() #key before jumping to graph
 
 show = df
+df['Reference'] = df['Reference'].fillna('#N/A')
 show['Destination'] = df['Reference'].apply(map_dashboard)
 show = show.reset_index()
 
